@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/PuerkitoBio/goquery"
 )
@@ -45,6 +46,36 @@ func extractSanskritTexts(url string, wg *sync.WaitGroup, ch chan<- []string) {
 	ch <- sanskritTexts
 }
 
+func checkAccuracy(expected, actual []string) bool {
+	// Compare expected and actual texts for accuracy
+	for i := range expected {
+		if expected[i] != actual[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func checkCompleteness(expected, actual []string) bool {
+	// Check if actual texts contain all expected texts
+	for _, exp := range expected {
+		found := false
+		for _, act := range actual {
+			if act == exp {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
+}
+
+// Function to check language-specific criteria
+// Implement as per specific requirements
+
 func main() {
 	// List of URLs to scrape concurrently
 	urls := []string{
@@ -63,6 +94,8 @@ func main() {
 	for _, url := range urls {
 		wg.Add(1)
 		go extractSanskritTexts(url, &wg, ch)
+		// Add a 1-second delay between requests to prevent overloading the server
+		time.Sleep(1 * time.Second)
 	}
 
 	// Close the channel once all goroutines are done
@@ -90,4 +123,37 @@ func main() {
 			}
 		}
 	}
+
+	// Perform quality testing
+	expectedTexts := []string{
+		// Add expected texts here...
+		
+	}
+
+	// Read extracted texts from file
+	extractedTexts, err := ioutil.ReadFile("sanskrit_texts.txt")
+	if err != nil {
+		fmt.Println("Error reading extracted texts:", err)
+		return
+	}
+
+	// Split the extracted texts into lines
+	extractedLines := strings.Split(string(extractedTexts), "\n")
+
+	// Check accuracy
+	accurate := checkAccuracy(expectedTexts, extractedLines)
+	if accurate {
+		fmt.Println("Accuracy: Texts match expected.")
+	} else {
+		fmt.Println("Accuracy: Texts do not match expected.")
+	}
+
+	// Check completeness
+	complete := checkCompleteness(expectedTexts, extractedLines)
+	if complete {
+		fmt.Println("Completeness: All expected texts found.")
+	} else {
+		fmt.Println("Completeness: Some expected texts are missing.")
+	}
+
 }
